@@ -1,0 +1,468 @@
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<title>Dice Roller | Kaze no Shiro</title>
+<head>
+<style type="text/css">
+body	{
+		background-color: rgb(228,200,178);
+		font-size: 100%;
+		font: 14px "Century Gothic";
+		color: #930000;
+	}
+.styled-select select {
+   -moz-border-radius: 9px 9px 9px 9px;
+   -webkit-border-radius: 9px 9px 9px 9px;
+   background:  right #9E2727; 
+   border-radius: 9px 9px 9px 9px;
+   border: 1px solid #ccc;
+   border:0; 
+   box-shadow: 1px 1px 11px #330033;
+   color:#FFFFFF; 
+   font-size:16px;
+   font-weight:bold; 
+   height: 34px;   
+   margin-bottom: 2px;
+   margin-right: 2px; 
+   margin-top: 2px; 
+   margin: 2px; 
+   overflow:hidden;
+   padding:2px 10px; 
+   text-align: center; 
+   width:235px;
+   }
+   .styled-button input {
+   
+   background:  right #9E2727; 
+   border-radius: 9px 9px 9px 9px;
+   border: 1px solid #ccc;
+   border:0; 
+   box-shadow: 1px 1px 11px #330033;
+   color:#FFFFFF; 
+   font-size:16px;
+   font-weight:bold; 
+   height: 30px;   
+   margin-bottom: 2px;
+   margin-right: 2px; 
+   margin-top: 2px; 
+   margin: 2px; 
+   overflow:hidden;
+   padding:4px 10px; 
+   width:100px;
+   }
+   .styled-box input {
+   background:  right #9E2727;
+   border-radius: 9px 9px 9px 9px;
+   border: 1px solid #ccc;
+   border:0; 
+   box-shadow: 1px 1px 11px #330033;
+   color:#FFFFFF; 
+   font-size:16px;
+   font-weight:bold; 
+   height: 20px;
+   margin-bottom: 2px;
+   margin-right: 2px; 
+   margin-top: 2px; 
+   margin: 2px; 
+   overflow:hidden;
+   padding:4px 10px; 
+   text-align: center; 
+   width: 60px;
+   }
+
+   
+
+}
+</style>
+<script language="JavaScript" type="text/javascript">
+// L5R Dice Roller written by Kakita Seigi and Liz
+
+//	Rolls a random die using inputted values.
+//	@param dieType caps value at maximum die type.
+//	@return a pseudo-random value to treat as a dice result.
+function rollDie(dietype)
+{
+	return Math.floor(Math.random() * dietype + 1); //gives us a number between the die side
+}
+ 
+// Determines whether a die should continue exploding based on the list of values used to compare number to.
+// @param list of numbers that if matched against to valueToCheck, we will invoke another roll.
+// @param valueToCheck number to verify against list to determine if we invoke another roll or not.
+// @return If number lands on passed in array we will return true. Otherwise, we will return false.
+
+function shouldExplode(numbersToExplodeOn, valueToCheck) //
+{
+	for(var index = 0; index < numbersToExplodeOn.length; index++)
+	{
+		if(numbersToExplodeOn[index] == valueToCheck) {
+			return true; 
+		}
+	}
+	return false; 
+}
+
+// Removes all values that are the same in the explode always list as a value that can 
+// explode always should supercede an identical value that explodes once.
+// @param explodeOnce list to remove any duplicated values from the explodeAlways list.
+// @param explodeOnce list to check for any duplicated values that the explodeOnce list may have.
+// @return spliced explodeOnce list with no duplicate values that can be found in the explodeOnce list.
+function supercedeExplodeAlwaysOverOnceArray(explodeOnce, explodeAlways)
+{
+	if (explodeOnce.length > 0)
+	{
+		for (var explodeAlwaysIndex = 0; explodeAlwaysIndex < explodeAlways.length; explodeAlwaysIndex++)
+		{
+			for (var explodeOnceIndex = 0; explodeOnceIndex < explodeOnce.length; explodeOnceIndex++)
+			{
+				if(explodeOnce[explodeOnceIndex] == explodeAlways[explodeAlwaysIndex])
+				{
+					explodeOnce.splice(explodeOnceIndex,1);
+				}
+			}
+		}
+	}
+}
+
+// Iterates thru array of a single die which will determine its value even if it exploded or not.
+// @param singleDie a list of all attempted rolls for a single die made from the dice roller.
+// @return sum of all the rolls made for a single die.
+function findDiceValue(singleDie)
+{
+	var total = 0;
+	for (var index = 0;index < singleDie.length; index++)
+	{
+		total = total + singleDie[index];
+	}
+	return total;
+}
+
+// Performs a sorting on array. Used so we can determine which dice to keep.
+// @param arrayToSort list to use sortDice upon
+// @param keepDiceHigh boolean to determine if we either bubble all the lowest values up or not.
+// @return if keepDiceHigh returns a list of highest values descending in order. otherwise, returns a list of lowest values descending in order.
+function sortDice(arrayToSort, keepDiceHigh)
+{
+	if(keepDiceHigh){
+        arrayToSort.sort(function (a,b) { return findDiceValue(b) - findDiceValue(a); });
+    }
+	else {
+        arrayToSort.sort(function (a,b) { return findDiceValue(a) - findDiceValue(b); });
+    }  
+}
+
+// Creates a header based upon settings passed by user and returns a visual representation of them.
+// @param form user feedback passed from dice roller form.
+// @return header with relevant rolling information.
+function rollHeader(form)
+{
+	var explodeDiceAlwaysArray = new String(document.getElementById("explodeDiceAlways").value);
+	explodeDiceAlwaysArray = explodeDiceAlwaysArray.split ( ',' );
+	
+	var explodeDiceOnceArray = new String(document.getElementById("explodeDiceOnce").value);
+	explodeDiceOnceArray = explodeDiceOnceArray.split ( ',' );
+	
+	var keepDiceHigh = form.keepDiceHigh.checked;
+	var skillEmphasis = form.skillEmphasis.checked;
+	
+	var strResponsetoUser = '';
+	if(0 != explodeDiceOnceArray) { strResponsetoUser = strResponsetoUser + ' The dice explode once on '+ explodeDiceOnceArray + "."; }
+	if(0 != explodeDiceAlwaysArray) { strResponsetoUser = strResponsetoUser + ' The dice always explode on '+ explodeDiceAlwaysArray + "."; }
+	if(skillEmphasis) { strResponsetoUser = strResponsetoUser + ' Skill emphasis are on.' ;}
+	if (keepDiceHigh) { strResponsetoUser = strResponsetoUser + ' Highest '; } else { strResponsetoUser = strResponsetoUser + ' Lowest '; }
+	
+	strResponsetoUser = strResponsetoUser + 'dice are kept.';
+	
+	return strResponsetoUser;
+}
+
+// Performs the neccesary calculation for a single attempt at rolling dice
+// @param form user feedback passed from dice roller form to determine what rules to follow.
+// @return string representation of this operation's results.
+function roll(form)
+{
+	var explodeDiceAlwaysArray = new String(document.getElementById("explodeDiceAlways").value);
+	explodeDiceAlwaysArray = explodeDiceAlwaysArray.split ( ',' ); //creates a list of dice to explode on based on comma-delimited input
+	
+	var explodeDiceOnceArray = new String(document.getElementById("explodeDiceOnce").value);
+	explodeDiceOnceArray = explodeDiceOnceArray.split ( ',' ); //creates a list of dice to explode on based on comma-delimited input
+	
+	supercedeExplodeAlwaysOverOnceArray(explodeDiceOnceArray,explodeDiceAlwaysArray); //remove duplicates from explode dice once
+	
+	var keepDiceHigh = form.keepDiceHigh.checked;
+	var keptDice = parseInt(document.getElementById("numberKeptDice").value);	
+	var raisesDeclared = document.getElementById("numberCalledRaises").value;
+	var rolledDice = parseInt(document.getElementById("numberRolledDice").value);
+	var rolledDieType = 10;
+	var skillEmphasis = form.skillEmphasis.checked;
+	var staticBonus = parseInt(form.staticBonus.value);
+	var staticPenalty = parseInt(form.staticPenalty.value);
+	var verbose =  form.verbose.checked;
+	var rolledResults = new Array();
+	var resultTotal = 0;
+	var detailedVerbose = "";
+	var i = 0;
+	var j = 0;
+	
+	//prevents the program from trying to keep more dice that you roll
+	if (keptDice > rolledDice)
+	{
+		keptDice = rolledDice;
+	}
+	
+	//creates string header for rules
+	var strResponsetoUser = "Rolling " + rolledDice + "k" + keptDice + ".";
+	strResponsetoUser = strResponsetoUser + rollHeader(form) + "\n"; 
+	
+	//creates a list of each die (each die has its own list to track exploding values)
+	for (i=0; i<rolledDice; i++) {
+		rolledResults[i] = new Array();
+	}
+
+	
+	if(verbose) { detailedVerbose = "\n\nVerbose Output:"; }
+	
+	
+	//first rolls and try to explode values that should always be exploded
+	for (var howManyLefttoroll = rolledDice;  howManyLefttoroll > 0; howManyLefttoroll--)
+	{
+		var howManyTimesWeExploded = 0;
+		do {
+			var dieRoll = rollDie(rolledDieType);
+			
+			if(verbose && howManyTimesWeExploded > 0) { detailedVerbose = detailedVerbose + " Exploding."; }
+			if(verbose && howManyTimesWeExploded == 0) { detailedVerbose = detailedVerbose + "\n*Rolled a " + dieRoll + "."; }
+			if(verbose && howManyTimesWeExploded > 0) { detailedVerbose = detailedVerbose + " New die adds " + dieRoll + " and becomes " + (parseInt(dieRoll)+findDiceValue(rolledResults[howManyLefttoroll-1]))+"."; }
+			
+			//re-roll value once immediately if value follows 4th Edition emphasis and we have never exploded values
+			if (skillEmphasis && 1 == dieRoll && 0 == howManyTimesWeExploded) 
+			{
+				dieRoll = rollDie(rolledDieType);
+				if(verbose) { detailedVerbose = detailedVerbose + " Rerolling using emphasis. Rolled a " + dieRoll + "."; }
+			}
+			
+			if(shouldExplode(explodeDiceOnceArray, dieRoll) && 0 == howManyTimesWeExploded)
+			{
+				var dieRoll = rollDie(rolledDieType);
+				if(verbose) { detailedVerbose = detailedVerbose + " Exploding once! New die adds " + dieRoll + " and becomes " + (parseInt(dieRoll)+findDiceValue(rolledResults[howManyLefttoroll-1]))+"."; }
+				//exploding only once will guarantee that position 2 in list should be used and this die cannot be exploded anymore
+				rolledResults[howManyLefttoroll-1][1] = dieRoll; 
+			}
+			
+			rolledResults[howManyLefttoroll-1][howManyTimesWeExploded++] = dieRoll;
+		} while (shouldExplode(explodeDiceAlwaysArray,dieRoll));
+	}
+	
+	
+	//sorts dice so we know what to keep
+	sortDice(rolledResults, keepDiceHigh);
+	
+	strResponsetoUser = strResponsetoUser + '\nRolled: ';
+	
+	for (i=0; i<rolledResults.length; i++) {
+		strResponsetoUser = strResponsetoUser + findDiceValue(rolledResults[i]);
+		if(i != rolledResults.length - 1)
+		{
+			strResponsetoUser = strResponsetoUser + ",";
+		}
+	}
+
+	strResponsetoUser = strResponsetoUser + '\nTotal: ';
+
+	for (i=0; i<keptDice; i++) {
+		for(j=0; j < rolledResults[i].length; j++)
+		{
+			resultTotal =resultTotal + rolledResults[i][j]; //goes thru ordered dice and grabs all dice (including exploded dice)
+		}
+	}
+
+	
+	if(verbose) { strResponsetoUser = strResponsetoUser + resultTotal + ' (Rolled) '; }
+
+	//check for static bonuses
+	var staticValue = 0;
+	
+	if(!isNaN(staticBonus) && 0 != staticBonus)
+	{
+		staticValue = staticValue + staticBonus;
+	}
+	if(!isNaN(staticPenalty) && 0 != staticPenalty)
+	{
+		staticValue = staticValue - staticPenalty;
+	}
+	
+	resultTotal = resultTotal + staticValue;
+	
+	if(0 != staticValue)
+	{
+		if(staticValue > 0)
+		{
+			if(verbose) { strResponsetoUser = strResponsetoUser + "+ "; }
+		}
+		else
+		{
+			staticValue = staticValue * -1;
+			if(verbose) { strResponsetoUser = strResponsetoUser + "- "; }
+		}
+		if(verbose) { strResponsetoUser = strResponsetoUser + (staticValue) + " (Static Modifiers) "; }
+	}
+	
+	
+
+	if (raisesDeclared > 0) {
+		resultTotal = resultTotal - (raisesDeclared * 5);
+		if(verbose) { strResponsetoUser = strResponsetoUser + "- " + (raisesDeclared * 5) + " (Raises) "; }
+	}
+
+	if(verbose) { strResponsetoUser = strResponsetoUser + '= '; }
+	strResponsetoUser = strResponsetoUser + resultTotal;
+	
+	return strResponsetoUser+detailedVerbose;
+}
+</script>
+<title>L5R d10 RPG Dice Roller</title>
+</head>
+  <body>
+    <div align="center">
+      <form name="l5rDiceRoller">
+        <table style="margin: 0px; margin-right: 0px; margin-top: 0px; margin-bottom: 0px" border="0" cellpadding="0" cellspacing="0">
+            <tr style="margin: 0px; margin-right: 0px; margin-top: 0px; margin-bottom: 0px" border="0" cellpadding="0" cellspacing="0">
+				<td align="right" style="margin: 0px; margin-right: 0px; margin-top: 0px; margin-bottom: 0px" border="0" cellpadding="0" cellspacing="0">
+					<p align="center" style="margin-bottom: 0px;">
+						<b><font size="3">Roll and Keep:</font></b>
+					</p>
+					<div class="styled-select">
+					<select name="numberRolledDice" id="numberRolledDice">
+						<option selected value="1">Roll 1</option>
+						<option value="2">Roll 2</option>
+						<option value="3">Roll 3</option>
+						<option value="4">Roll 4</option>
+						<option value="5">Roll 5</option>
+						<option value="6">Roll 6</option>
+						<option value="7">Roll 7</option>
+						<option value="8">Roll 8</option>
+						<option value="9">Roll 9</option>
+						<option value="10">Roll 10</option>
+					</select>
+					</div>
+					
+					<div class="styled-select">
+					<select name="numberKeptDice" id="numberKeptDice">
+						<option selected value="1">Keep 1</option>
+						<option value="2">Keep 2</option>
+						<option value="3">Keep 3</option>
+						<option value="4">Keep 4</option>
+						<option value="5">Keep 5</option>
+						<option value="6">Keep 6</option>
+						<option value="7">Keep 7</option>
+						<option value="8">Keep 8</option>
+						<option value="9">Keep 9</option>
+						<option value="10">Keep 10</option>
+					</select>
+					</div>
+					
+					</br>
+					<p align="center" style="margin-bottom: 0px;">
+						<b><font size="3">Optional Configurations:</font></b>
+					</p>
+					<div class="styled-select">
+					<select name="numberCalledRaises" id="numberCalledRaises">
+					    <option selected value="0">No Called Raises</option>
+						<option value="1">1 Called Raise</option>
+						<option value="2">2 Called Raises</option>
+						<option value="3">3 Called Raises</option>
+						<option value="4">4 Called Raises</option>
+						<option value="5">5 Called Raises</option>
+						<option value="6">6 Called Raises</option>
+						<option value="7">7 Called Raises</option>
+						<option value="8">8 Called Raises</option>
+						<option value="9">9 Called Raises</option>
+						<option value="10">10 Called Raises</option>
+					</select>
+					</div>
+					<div class="styled-select">
+					<select name="explodeDiceOnce" id="explodeDiceOnce">
+						<option selected value="0">Never Explode Once</option>
+						<option value="1">Explode Once on 1</option>
+						<option value="2">Explode Once on 2</option>
+						<option value="3">Explode Once on 3</option>
+						<option value="4">Explode Once on 4</option>
+						<option value="5">Explode Once on 5</option>
+						<option value="6">Explode Once on 6</option>
+						<option value="7">Explode Once on 7</option>
+						<option value="8">Explode Once on 8</option>
+						<option value="9">Explode Once on 9</option>
+						<option value="10">Explode Once on 10</option>
+						<option value="1,2,3,4,5,6,7,8,9,10">Explode Once 1 thru 10</option>
+						<option value="2,3,4,5,6,7,8,9,10">Explode Once 2 thru 10</option>
+						<option value="3,4,5,6,7,8,9,10">Explode Once 3 thru 10</option>
+						<option value="4,5,6,7,8,9,10">Explode Once 4 thru 10</option>
+						<option value="5,6,7,8,9,10">Explode Once 5 thru 10</option>
+						<option value="6,7,8,9,10">Explode Once 6 thru 10</option>
+						<option value="7,8,9,10">Explode Once 7 thru 10</option>
+						<option value="8,9,10">Explode Once 8 thru 10</option>
+						<option value="9,10">Explode Once 9 thru 10</option>
+					</select>
+					</div>
+					<div class="styled-select">
+					<select name="explodeDiceAlways" id="explodeDiceAlways">
+						<option value="0">Never Explode</option>
+						<option value="1">Explode on 1</option>
+						<option value="2">Explode on 2</option>
+						<option value="3">Explode on 3</option>
+						<option value="4">Explode on 4</option>
+						<option value="5">Explode on 5</option>
+						<option value="6">Explode on 6</option>
+						<option value="7">Explode on 7</option>
+						<option value="8">Explode on 8</option>
+						<option value="9">Explode on 9</option>
+						<option selected value="10">Explode on 10</option>
+						<option value="2,3,4,5,6,7,8,9,10">Explode 2 thru 10</option>
+						<option value="3,4,5,6,7,8,9,10">Explode 3 thru 10</option>
+						<option value="4,5,6,7,8,9,10">Explode 4 thru 10</option>
+						<option value="5,6,7,8,9,10">Explode 5 thru 10</option>
+						<option value="6,7,8,9,10">Explode 6 thru 10</option>
+						<option value="7,8,9,10">Explode 7 thru 10</option>
+						<option value="8,9,10">Explode 8 thru 10</option>
+						<option value="9,10">Explode 9 thru 10</option>
+					</select>
+					</div>
+					<div class="styled-box">
+						<b><font size="3" face="Times New Roman"> Static Bonus: </font></b><input name="staticBonus" value="0" style="color:#FFFFFF;"/>
+					</div>
+					<div class="styled-box">
+						<b><font size="3" face="Times New Roman">Static Penalty: </font></b><input name="staticPenalty" value="0" style="color:#FFFFFF;"/>
+					</div>
+					<center>
+					 <input name="keepDiceHigh" type="checkbox" checked="checked" style="margin: 0px; margin-right: 0px; margin-top: 0px; margin-bottom: 0px"/>
+					 </font><font size="1">Keep Best Dice?</font>
+					 <input name="skillEmphasis" type="checkbox" style="margin: 0px; margin-right: 0px; margin-top: 0px; margin-bottom: 0px"/>
+					 </font><font size="1">4th Ed. Emphasis?</font>
+					 <br>
+					 <input name="verbose" type="checkbox" style="margin: 0px; margin-right: 0px; margin-top: 0px; margin-bottom: 0px"/>
+					 </font><font size="1">Verbose Output?</font>
+					 </center>
+				</td>
+				<td align="right" style="margin: 0px; margin-right: 0px; margin-top: 0px; margin-bottom: 0px" border="0" cellpadding="0" cellspacing="0">
+					<p align="center" style="margin-bottom: 0px;">
+						<b><font size="3">Results:</font></b>
+					</p>
+					<p align="center" style="margin: 0px; margin-right: 0px; margin-top: 0px; margin-bottom: 0px">
+						<textarea cols="35" name="diceDisplay" rows="12" readonly="readonly" style="background: #f5f5f5; color: #555;">
+Welcome to the L5R Dice Roller!
+*Order of Operations:
+1.) Roll Dice Set
+2.) Reroll 1's (4ED Emphasis, Optional)
+3.) Explode Dice. 'Explode Always' Feature Takes Precedence over 'Explode Once' Feature.
+4.) Apply Bonus and Penalty
+						</textarea>
+					</p>
+					<div class="styled-button">
+                    <p align="center">
+						<input value="Roll Dice" onclick="this.form.diceDisplay.value=roll(this.form);" onfocus="this.value = this.value;" type="button" style="color:#FFFFFF;"/>
+					</p>
+					</div>
+				</td>
+			</tr>
+		</table>
+	  </form>
+    </div>
+  </body>
+</html>

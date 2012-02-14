@@ -1,0 +1,11 @@
+
+bin
+gen
+coverage
+local.properties
+project.properties
+.metadata/*
+.settings/*
+*coverage.em
+*.orig
+
